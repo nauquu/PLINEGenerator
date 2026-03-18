@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoCAD PLINE Tool</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Courier New', monospace;
+    background: #0d1117;
+    color: #e6edf3;
+    min-height: 100vh;
+  }
+
+  .header {
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo {
+    width: 36px; height: 36px;
+    background: #f0511e;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; color: #fff;
+  }
+
+  .header h1 {
+    font-size: 16px; font-weight: 600; color: #f0f6fc;
+    font-family: 'Segoe UI', sans-serif;
+  }
+
+  .header span {
+    font-size: 12px; color: #7d8590;
+    font-family: 'Segoe UI', sans-serif;
+    margin-left: 4px;
+  }
+
+  .badge {
+    margin-left: auto;
+    background: #1f6feb22;
+    border: 1px solid #1f6feb;
+    color: #79c0ff;
+    font-size: 11px; padding: 2px 8px;
+    border-radius: 20px;
+    font-family: 'Segoe UI', sans-serif;
+  }
+
+  .container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    height: calc(100vh - 65px);
+  }
+
+  .panel {
+    border-right: 1px solid #30363d;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 12px 16px;
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    font-size: 12px; color: #7d8590;
+    font-family: 'Segoe UI', sans-serif;
+    display: flex; align-items: center; gap: 8px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-orange { background: #f0511e; }
+  .dot-green { background: #3fb950; }
+  .dot-blue { background: #79c0ff; }
+  .dot-yellow { background: #e3b341; }
+
+  .paste-btn {
+    background: #161b22;
+    border: 1.5px solid #f0511e;
+    color: #f0511e;
+    padding: 11px 16px;
+    border-radius: 7px;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    font-family: 'Segoe UI', sans-serif;
+    display: flex; align-items: center; gap: 8px;
+    justify-content: center;
+    transition: all 0.18s;
+    width: 100%;
+    flex-shrink: 0;
+  }
+  .paste-btn:hover { background: #f0511e18; }
+  .paste-btn:active { transform: scale(0.98); }
+  .paste-btn .kbd {
+    margin-left: auto;
+    font-size: 10px; opacity: 0.6;
+    background: #21262d; border: 1px solid #30363d;
+    border-radius: 3px;
+    padding: 1px 6px; font-family: monospace;
+    color: #7d8590;
+  }
+
+  .upload-zone {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 20px;
+    cursor: pointer;
+    border: 2px dashed #30363d;
+    border-radius: 8px;
+    transition: border-color 0.2s, background 0.2s;
+    min-height: 0;
+  }
+
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: #f0511e;
+    background: #f0511e0a;
+  }
+
+  .upload-zone input { display: none; }
+
+  .upload-icon {
+    width: 48px; height: 48px;
+    background: #1c2128;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 12px;
+  }
+
+  .upload-icon svg { width: 24px; height: 24px; stroke: #7d8590; }
+
+  .upload-zone p {
+    font-size: 13px; color: #7d8590;
+    font-family: 'Segoe UI', sans-serif;
+    text-align: center; line-height: 1.6;
+  }
+
+  .upload-zone p strong { color: #e6edf3; }
+
+  .preview-container {
+    flex: 1; padding: 16px;
+    display: flex; flex-direction: column; gap: 12px;
+    overflow-y: auto;
+  }
+
+  #imagePreview {
+    width: 100%; border-radius: 6px;
+    border: 1px solid #30363d;
+    object-fit: contain; max-height: 280px;
+  }
+
+  .analyze-btn {
+    background: #f0511e;
+    border: none; color: #fff;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    font-family: 'Segoe UI', sans-serif;
+    display: flex; align-items: center; gap: 8px;
+    justify-content: center;
+    transition: background 0.2s, transform 0.1s;
+  }
+
+  .analyze-btn:hover { background: #d44218; }
+  .analyze-btn:active { transform: scale(0.98); }
+  .analyze-btn:disabled { background: #30363d; color: #7d8590; cursor: not-allowed; }
+
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid #ffffff44;
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .right-panel {
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  .coord-table-wrap {
+    flex: 1; overflow-y: auto;
+    padding: 16px;
+  }
+
+  table {
+    width: 100%; border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  th {
+    background: #1c2128;
+    padding: 8px 12px;
+    text-align: left;
+    color: #7d8590;
+    font-weight: 500;
+    border-bottom: 1px solid #30363d;
+    position: sticky; top: 0;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px;
+  }
+
+  td {
+    padding: 7px 12px;
+    border-bottom: 1px solid #21262d;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #e6edf3;
+  }
+
+  tr:hover td { background: #161b22; }
+
+  td.num { color: #79c0ff; }
+  td.coord { color: #a5d6ff; }
+  td.editable { outline: none; }
+  td.editable:focus { background: #1c2128; box-shadow: inset 0 0 0 1px #f0511e; }
+
+  .output-panel {
+    border-top: 1px solid #30363d;
+    padding: 0;
+    display: flex; flex-direction: column;
+    max-height: 280px;
+  }
+
+  .output-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px;
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+  }
+
+  .output-header span {
+    font-size: 12px; color: #7d8590;
+    font-family: 'Segoe UI', sans-serif;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+
+  .copy-btn {
+    margin-left: auto;
+    background: none; border: 1px solid #30363d;
+    color: #7d8590; padding: 4px 12px;
+    border-radius: 4px; font-size: 12px;
+    cursor: pointer; font-family: 'Segoe UI', sans-serif;
+    transition: all 0.2s;
+  }
+  .copy-btn:hover { border-color: #3fb950; color: #3fb950; }
+  .copy-btn.copied { border-color: #3fb950; color: #3fb950; }
+
+  .close-pline-btn {
+    background: none; border: 1px solid #30363d;
+    color: #7d8590; padding: 4px 12px;
+    border-radius: 4px; font-size: 12px;
+    cursor: pointer; font-family: 'Segoe UI', sans-serif;
+    transition: all 0.2s; margin-right: 6px;
+  }
+  .close-pline-btn.active { border-color: #e3b341; color: #e3b341; }
+
+  #plineOutput {
+    background: #0d1117;
+    padding: 14px 16px;
+    font-family: 'Courier New', monospace;
+    font-size: 12.5px;
+    line-height: 1.8;
+    overflow-y: auto;
+    flex: 1;
+    color: #3fb950;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .empty-state {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    height: 100px;
+    color: #7d8590;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 13px; gap: 6px;
+  }
+
+  .status-bar {
+    padding: 6px 16px;
+    background: #161b22;
+    border-top: 1px solid #30363d;
+    font-size: 11px; color: #7d8590;
+    font-family: 'Segoe UI', sans-serif;
+    display: flex; align-items: center; gap: 12px;
+  }
+
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #3fb950; }
+
+  .add-row-btn {
+    background: none; border: 1px dashed #30363d;
+    color: #7d8590; padding: 6px;
+    border-radius: 4px; font-size: 12px;
+    cursor: pointer; width: 100%; margin-top: 8px;
+    font-family: 'Segoe UI', sans-serif;
+    transition: all 0.2s;
+  }
+  .add-row-btn:hover { border-color: #f0511e; color: #f0511e; }
+
+  .del-btn {
+    background: none; border: none;
+    color: #f8514933; cursor: pointer;
+    font-size: 14px; padding: 2px 6px;
+    border-radius: 3px;
+    transition: color 0.2s;
+  }
+  .del-btn:hover { color: #f85149; }
+
+  .loading-overlay {
+    position: absolute; inset: 0;
+    background: #0d111799;
+    display: none;
+    align-items: center; justify-content: center;
+    flex-direction: column; gap: 12px;
+    border-radius: 6px;
+    z-index: 10;
+  }
+  .loading-overlay.show { display: flex; }
+
+  .loading-text {
+    color: #e6edf3;
+    font-size: 13px;
+    font-family: 'Segoe UI', sans-serif;
+  }
+
+  .big-spinner {
+    width: 32px; height: 32px;
+    border: 3px solid #30363d;
+    border-top-color: #f0511e;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  .hint {
+    font-size: 11px; color: #7d8590;
+    font-family: 'Segoe UI', sans-serif;
+  }
+
+  .toast {
+    position: fixed; bottom: 28px; left: 50%;
+    transform: translateX(-50%) translateY(12px);
+    background: #238636; color: #fff;
+    padding: 8px 18px; border-radius: 6px;
+    font-size: 13px; font-family: 'Segoe UI', sans-serif;
+    opacity: 0; transition: all 0.22s;
+    pointer-events: none; z-index: 999;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<div class="header">
+  <div class="logo">AC</div>
+  <div>
+    <h1>AutoCAD PLINE Generator <span>— Quét tọa độ từ ảnh</span></h1>
+  </div>
+
+</div>
+
+<div class="container">
+  <!-- LEFT: Input -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="dot dot-orange"></div>
+      Input — Ảnh bảng tọa độ
+    </div>
+
+    <div id="uploadSection" style="flex:1;display:flex;flex-direction:column;padding:16px;">
+      <label class="upload-zone" id="dropZone">
+        <input type="file" id="fileInput" accept="image/*">
+        <div class="upload-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+            <path d="M4 16l4.586-4.586A2 2 0 0116 11.414V20M14 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V10L14 4z" stroke-linecap="round"/>
+            <path d="M14 4v6h6" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <p><strong>Kéo thả ảnh vào đây</strong><br>hoặc click để chọn file</p>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px dashed #30363d;width:100%;text-align:center;">
+          <p style="font-size:12px;color:#7d8590;line-height:1.8;">
+            Hoặc chụp màn hình rồi nhấn<br>
+            <span style="display:inline-flex;align-items:center;gap:4px;margin-top:4px;">
+              <kbd style="background:#21262d;border:1px solid #30363d;border-radius:4px;padding:2px 7px;font-size:11px;color:#c9d1d9;font-family:monospace;">Ctrl+V</kbd>
+              <span style="color:#484f58;font-size:11px;">để dán ảnh trực tiếp</span>
+            </span>
+          </p>
+        </div>
+      </label>
+    </div>
+
+    <div id="previewSection" style="display:none;flex:1;flex-direction:column;" class="preview-container">
+      <div style="position:relative;">
+        <img id="imagePreview" alt="Preview">
+        <div class="loading-overlay" id="loadingOverlay">
+          <div class="big-spinner"></div>
+          <div class="loading-text" id="loadingText">Đang phân tích ảnh...</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="analyze-btn" id="analyzeBtn" onclick="analyzeImage()">
+          <div class="spinner" id="btnSpinner"></div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Phân tích ảnh (AI)
+        </button>
+        <button onclick="resetUpload()" style="background:none;border:1px solid #30363d;color:#7d8590;padding:10px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-family:'Segoe UI',sans-serif;transition:all 0.2s;" onmouseover="this.style.borderColor='#7d8590'" onmouseout="this.style.borderColor='#30363d'">
+          ↺ Đổi ảnh
+        </button>
+      </div>
+
+      <div class="hint">💡 AI sẽ nhận diện và trích xuất tọa độ X, Y từ bảng trong ảnh</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Table + Output -->
+  <div class="right-panel">
+    <div class="panel-header">
+      <div class="dot dot-green"></div>
+      Bảng tọa độ — Chỉnh sửa trực tiếp
+    </div>
+
+    <div class="coord-table-wrap">
+      <div class="empty-state" id="emptyState">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#30363d" stroke-width="1.5">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <path d="M3 9h18M9 21V9"/>
+        </svg>
+        Tải ảnh bảng tọa độ lên để bắt đầu
+      </div>
+      <div id="tableContainer" style="display:none;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:40px;">STT</th>
+              <th>Tên điểm</th>
+              <th>X (m)</th>
+              <th>Y (m)</th>
+              <th style="width:36px;"></th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+        <button class="add-row-btn" onclick="addRow()">+ Thêm điểm mới</button>
+      </div>
+    </div>
+
+    <div class="output-panel">
+      <div class="output-header">
+        <div class="dot dot-blue"></div>
+        <span>Lệnh AutoCAD PLINE</span>
+        <button class="copy-btn" id="copyBtn" onclick="copyToClipboard()">⎘ Sao chép</button>
+      </div>
+      <div id="plineOutput"><div class="empty-state">Lệnh sẽ hiển thị sau khi có tọa độ...</div></div>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-dot"></div>
+      <span id="statusText">Sẵn sàng — Ctrl+V để dán ảnh</span>
+      <span style="margin-left:auto;color:#30363d;">v1.1</span>
+    </div>
+  </div>
+</div>
+
+<script>
+let coords = [];
+let currentImage = null;
+
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadImageFile(f);
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) loadImageFile(e.target.files[0]); });
+
+// Global Ctrl+V — works anywhere on the page
+document.addEventListener('paste', e => {
+  // Don't intercept paste inside editable table cells
+  if (e.target.getAttribute('contenteditable')) return;
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      e.preventDefault();
+      const file = item.getAsFile();
+      if (file) { loadImageFile(file); showToast('Đã dán ảnh từ clipboard!'); }
+      return;
+    }
+  }
+});
+
+async function pasteFromClipboard() {
+  try {
+    const items = await navigator.clipboard.read();
+    for (const item of items) {
+      const imgType = item.types.find(t => t.startsWith('image/'));
+      if (imgType) {
+        const blob = await item.getType(imgType);
+        loadImageFile(blob);
+        showToast('Đã dán ảnh từ clipboard!');
+        return;
+      }
+    }
+    showToast('Không có ảnh trong clipboard — hãy chụp màn hình trước!', true);
+  } catch {
+    showToast('Nhấn Ctrl+V bất kỳ đâu để dán ảnh!', true);
+  }
+}
+
+function loadImageFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    currentImage = { data: dataUrl.split(',')[1], mime: file.type || 'image/png' };
+    document.getElementById('imagePreview').src = dataUrl;
+    document.getElementById('uploadSection').style.display = 'none';
+    document.getElementById('previewSection').style.display = 'flex';
+    document.getElementById('statusText').textContent = 'Ảnh đã tải — nhấn Phân tích để đọc tọa độ';
+  };
+  reader.readAsDataURL(file);
+}
+
+function resetUpload() {
+  currentImage = null;
+  document.getElementById('uploadSection').style.display = 'flex';
+  document.getElementById('previewSection').style.display = 'none';
+  document.getElementById('fileInput').value = '';
+  coords = [];
+  renderTable();
+  updatePlineOutput();
+  document.getElementById('statusText').textContent = 'Sẵn sàng — Ctrl+V để dán ảnh';
+}
+
+function showToast(msg, err = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = err ? '#b62324' : '#238636';
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+async function analyzeImage() {
+  if (!currentImage) return;
+  const btn = document.getElementById('analyzeBtn');
+  const spinner = document.getElementById('btnSpinner');
+  const overlay = document.getElementById('loadingOverlay');
+  const loadingText = document.getElementById('loadingText');
+
+  btn.disabled = true;
+  spinner.style.display = 'block';
+  overlay.classList.add('show');
+  document.getElementById('statusText').textContent = 'Đang gửi ảnh đến AI...';
+
+  const msgs = [
+    ['Đang nhận diện bảng tọa độ...', 800],
+    ['Đang trích xuất số liệu X, Y...', 1500],
+    ['Đang xử lý và kiểm tra dữ liệu...', 1200]
+  ];
+  let d = 0;
+  for (const [m, ms] of msgs) { setTimeout(() => { loadingText.textContent = m; }, d); d += ms; }
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: currentImage.mime, data: currentImage.data } },
+            { type: 'text', text: 'Phân tích ảnh bảng tọa độ đất/thửa đất này. Trích xuất TẤT CẢ các điểm tọa độ trong bảng.\n\nTrả về CHÍNH XÁC dạng JSON sau, KHÔNG có markdown hay text khác:\n{"points":[{"name":"tên hoặc STT","x":số_thực,"y":số_thực}]}\n\nLưu ý: X và Y là số thực, giữ nguyên thứ tự trong bảng, chỉ JSON thuần túy.' }
+          ]
+        }]
+      })
+    });
+
+    const data = await res.json();
+    let text = (data.content || []).map(i => i.text || '').join('').replace(/```json|```/g, '').trim();
+
+    let parsed;
+    try { parsed = JSON.parse(text); }
+    catch { const m = text.match(/\{[\s\S]*\}/); parsed = m ? JSON.parse(m[0]) : null; }
+
+    if (!parsed || !parsed.points || parsed.points.length === 0) {
+      showToast('Không tìm thấy bảng tọa độ trong ảnh!', true);
+      document.getElementById('statusText').textContent = 'Không tìm thấy tọa độ';
+    } else {
+      coords = parsed.points.map(p => ({
+        name: String(p.name || ''),
+        x: parseFloat(String(p.x).replace(',', '.')),
+        y: parseFloat(String(p.y).replace(',', '.'))
+      })).filter(p => !isNaN(p.x) && !isNaN(p.y));
+      renderTable();
+      updatePlineOutput();
+      showToast('Trích xuất thành công ' + coords.length + ' điểm!');
+      document.getElementById('statusText').textContent = 'Đã trích xuất ' + coords.length + ' điểm tọa độ';
+    }
+  } catch (err) {
+    showToast('Lỗi: ' + err.message, true);
+    document.getElementById('statusText').textContent = 'Lỗi phân tích';
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    overlay.classList.remove('show');
+  }
+}
+
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  const empty = document.getElementById('emptyState');
+  const container = document.getElementById('tableContainer');
+  if (coords.length === 0) { empty.style.display = 'flex'; container.style.display = 'none'; return; }
+  empty.style.display = 'none'; container.style.display = 'block';
+  tbody.innerHTML = '';
+  coords.forEach((pt, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="num">${i+1}</td>
+      <td class="editable coord" contenteditable="true" oninput="updateCoord(${i},'name',this.textContent)">${esc(pt.name)}</td>
+      <td class="editable coord" contenteditable="true" oninput="updateCoord(${i},'x',this.textContent)">${fmt(pt.x)}</td>
+      <td class="editable coord" contenteditable="true" oninput="updateCoord(${i},'y',this.textContent)">${fmt(pt.y)}</td>
+      <td><button class="del-btn" onclick="deleteRow(${i})">✕</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function fmt(n) { return isNaN(n) ? '' : n.toFixed(3); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function updateCoord(i, f, v) {
+  if (f === 'name') coords[i].name = v.trim();
+  else { const n = parseFloat(v.replace(',','.')); if (!isNaN(n)) coords[i][f] = n; }
+  updatePlineOutput();
+}
+function deleteRow(i) { coords.splice(i,1); renderTable(); updatePlineOutput(); }
+function addRow() {
+  coords.push({name: String(coords.length+1), x:0, y:0});
+  renderTable(); updatePlineOutput();
+  setTimeout(() => { const rows = document.querySelectorAll('#tableBody tr'); if (rows.length) rows[rows.length-1].querySelector('td:nth-child(3)').focus(); }, 50);
+}
+function updatePlineOutput() {
+  const out = document.getElementById('plineOutput');
+  const valid = coords.filter(p => !isNaN(p.x) && !isNaN(p.y));
+  if (valid.length < 2) {
+    out.innerHTML = '<div class="empty-state">Cần ít nhất 2 điểm tọa độ...</div>';
+    out._cmd = '';
+    return;
+  }
+  const pts = valid.map(p => `${p.x.toFixed(3)},${p.y.toFixed(3)}`).join(' ');
+  const cmd = `PLINE ${pts} `;
+  out._cmd = cmd;
+  out.textContent = cmd;
+}
+function copyToClipboard() {
+  const out = document.getElementById('plineOutput');
+  const cmd = out._cmd;
+  if (!cmd) { showToast('Chưa có lệnh để sao chép!', true); return; }
+
+  const ta = document.createElement('textarea');
+  ta.value = cmd;
+  ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch {}
+  document.body.removeChild(ta);
+
+  if (ok) {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ Đã sao chép'; btn.classList.add('copied');
+    showToast('Đã sao chép! Dán vào AutoCAD và Enter.');
+    document.getElementById('statusText').textContent = 'Đã sao chép — dán vào AutoCAD!';
+    setTimeout(() => { btn.textContent = '⎘ Sao chép'; btn.classList.remove('copied'); }, 2500);
+  } else {
+    showToast('Không sao chép được — hãy bôi đen và Ctrl+C!', true);
+  }
+}
+</script>
+</body>
+</html>
