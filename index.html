@@ -479,6 +479,11 @@
 </div>
 
 <script>
+// ========================================
+// 👇 Dán URL Cloudflare Worker của bạn vào đây
+const WORKER_URL = 'https://little-tree-2b27.suquan357.workers.dev/';
+// ========================================
+
 let coords = [];
 let currentImage = null;
 
@@ -582,7 +587,7 @@ async function analyzeImage() {
   for (const [m, ms] of msgs) { setTimeout(() => { loadingText.textContent = m; }, d); d += ms; }
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch(WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
