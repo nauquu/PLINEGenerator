@@ -481,7 +481,7 @@
 <script>
 // ========================================
 // 👇 Dán URL Cloudflare Worker của bạn vào đây
-const WORKER_URL = 'https://little-tree-2b27.suquan357.workers.dev/';
+const WORKER_URL = 'https://anthropic-proxy.TÊN_BẠN.workers.dev';
 // ========================================
 
 let coords = [];
@@ -591,13 +591,10 @@ async function analyzeImage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gpt-4o',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: currentImage.mime, data: currentImage.data } },
-            { type: 'text', text: 'Phân tích ảnh bảng tọa độ đất/thửa đất này. Trích xuất TẤT CẢ các điểm tọa độ trong bảng.\n\nTrả về CHÍNH XÁC dạng JSON sau, KHÔNG có markdown hay text khác:\n{"points":[{"name":"tên hoặc STT","x":số_thực,"y":số_thực}]}\n\nLưu ý: X và Y là số thực, giữ nguyên thứ tự trong bảng, chỉ JSON thuần túy.' }
+        contents: [{
+          parts: [
+            { inline_data: { mime_type: currentImage.mime, data: currentImage.data } },
+            { text: 'Phân tích ảnh bảng tọa độ đất/thửa đất này. Trích xuất TẤT CẢ các điểm tọa độ trong bảng.\n\nTrả về CHÍNH XÁC dạng JSON sau, KHÔNG có markdown hay text khác:\n{"points":[{"name":"tên hoặc STT","x":số_thực,"y":số_thực}]}\n\nLưu ý: X và Y là số thực, giữ nguyên thứ tự trong bảng, chỉ JSON thuần túy.' }
           ]
         }]
       })
@@ -605,13 +602,12 @@ async function analyzeImage() {
 
     const data = await res.json();
 
-    // Nếu Anthropic trả về lỗi, hiện chi tiết
     if (!res.ok || data.error) {
       const msg = data.error?.message || JSON.stringify(data);
       throw new Error('API lỗi: ' + msg);
     }
 
-    let text = (data.content || []).map(i => i.text || '').join('').replace(/```json|```/g, '').trim();
+    let text = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').replace(/```json|```/g, '').trim();
 
     let parsed;
     try { parsed = JSON.parse(text); }
