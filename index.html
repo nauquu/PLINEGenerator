@@ -604,6 +604,13 @@ async function analyzeImage() {
     });
 
     const data = await res.json();
+
+    // Nếu Anthropic trả về lỗi, hiện chi tiết
+    if (!res.ok || data.error) {
+      const msg = data.error?.message || JSON.stringify(data);
+      throw new Error('API lỗi: ' + msg);
+    }
+
     let text = (data.content || []).map(i => i.text || '').join('').replace(/```json|```/g, '').trim();
 
     let parsed;
