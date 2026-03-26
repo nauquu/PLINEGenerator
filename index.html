@@ -54,7 +54,7 @@
 
   .container {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 0;
     height: calc(100vh - 65px);
   }
@@ -476,6 +476,27 @@
       <span style="margin-left:auto;color:#30363d;">v1.1</span>
     </div>
   </div>
+
+  <!-- DRAW PANEL -->
+  <div style="display:flex;flex-direction:column;overflow:hidden;border-left:1px solid #30363d;">
+    <div class="panel-header">
+      <div class="dot" style="background:#e3b341;"></div>
+      Xem trước thửa đất
+      <button onclick="exportSVG()" style="margin-left:auto;background:none;border:1px solid #30363d;color:#7d8590;padding:3px 10px;border-radius:4px;font-size:11px;cursor:pointer;font-family:'Segoe UI',sans-serif;" onmouseover="this.style.borderColor='#e3b341';this.style.color='#e3b341'" onmouseout="this.style.borderColor='#30363d';this.style.color='#7d8590'">↓ SVG</button>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:16px;overflow:hidden;background:#0d1117;">
+      <div id="drawEmpty" style="display:flex;flex-direction:column;align-items:center;gap:10px;color:#7d8590;font-family:'Segoe UI',sans-serif;font-size:13px;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#30363d" stroke-width="1">
+          <polygon points="3,21 8,5 13,14 17,9 21,21"/>
+        </svg>
+        Hình thửa đất sẽ hiện ở đây
+      </div>
+      <canvas id="landCanvas" style="display:none;max-width:100%;max-height:100%;"></canvas>
+    </div>
+    <div style="padding:8px 16px;background:#161b22;border-top:1px solid #30363d;font-size:11px;color:#7d8590;font-family:'Segoe UI',sans-serif;">
+      <span id="drawInfo">—</span>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -624,6 +645,7 @@ async function analyzeImage() {
       })).filter(p => !isNaN(p.x) && !isNaN(p.y));
       renderTable();
       updatePlineOutput();
+      drawLand();
       showToast('Trích xuất thành công ' + coords.length + ' điểm!');
       document.getElementById('statusText').textContent = 'Đã trích xuất ' + coords.length + ' điểm tọa độ';
     }
@@ -662,11 +684,12 @@ function updateCoord(i, f, v) {
   if (f === 'name') coords[i].name = v.trim();
   else { const n = parseFloat(v.replace(',','.')); if (!isNaN(n)) coords[i][f] = n; }
   updatePlineOutput();
+  drawLand();
 }
-function deleteRow(i) { coords.splice(i,1); renderTable(); updatePlineOutput(); }
+function deleteRow(i) { coords.splice(i,1); renderTable(); updatePlineOutput(); drawLand(); }
 function addRow() {
   coords.push({name: String(coords.length+1), x:0, y:0});
-  renderTable(); updatePlineOutput();
+  renderTable(); updatePlineOutput(); drawLand();
   setTimeout(() => { const rows = document.querySelectorAll('#tableBody tr'); if (rows.length) rows[rows.length-1].querySelector('td:nth-child(3)').focus(); }, 50);
 }
 function updatePlineOutput() {
@@ -707,6 +730,147 @@ function copyToClipboard() {
   } else {
     showToast('Không sao chép được — hãy bôi đen và Ctrl+C!', true);
   }
+}
+
+function drawLand() {
+  const canvas = document.getElementById('landCanvas');
+  const empty = document.getElementById('drawEmpty');
+  const info = document.getElementById('drawInfo');
+  const valid = coords.filter(p => !isNaN(p.x) && !isNaN(p.y));
+
+  if (valid.length < 2) {
+    canvas.style.display = 'none';
+    empty.style.display = 'flex';
+    info.textContent = '—';
+    return;
+  }
+
+  empty.style.display = 'none';
+  canvas.style.display = 'block';
+
+  const PAD = 40;
+  const parent = canvas.parentElement;
+  const W = parent.clientWidth - 32;
+  const H = parent.clientHeight - 32;
+  canvas.width = W;
+  canvas.height = H;
+
+  const xs = valid.map(p => p.x), ys = valid.map(p => p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const rangeX = maxX - minX || 1, rangeY = maxY - minY || 1;
+
+  const scaleX = (W - PAD*2) / rangeX;
+  const scaleY = (H - PAD*2) / rangeY;
+  const scale = Math.min(scaleX, scaleY);
+
+  const offX = PAD + ((W - PAD*2) - rangeX * scale) / 2;
+  const offY = PAD + ((H - PAD*2) - rangeY * scale) / 2;
+
+  // Chuyển tọa độ thực sang pixel (Y flip vì canvas Y đi xuống)
+  const toCanvas = p => ({
+    x: offX + (p.x - minX) * scale,
+    y: H - (offY + (p.y - minY) * scale)
+  });
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  // Vẽ grid mờ
+  ctx.strokeStyle = '#21262d';
+  ctx.lineWidth = 0.5;
+  const gridStep = Math.pow(10, Math.floor(Math.log10(rangeX / 4)));
+  for (let x = Math.ceil(minX/gridStep)*gridStep; x <= maxX; x += gridStep) {
+    const px = toCanvas({x, y: minY});
+    ctx.beginPath(); ctx.moveTo(px.x, PAD); ctx.lineTo(px.x, H - PAD); ctx.stroke();
+  }
+  for (let y = Math.ceil(minY/gridStep)*gridStep; y <= maxY; y += gridStep) {
+    const py = toCanvas({x: minX, y});
+    ctx.beginPath(); ctx.moveTo(PAD, py.y); ctx.lineTo(W - PAD, py.y); ctx.stroke();
+  }
+
+  // Vẽ vùng đất fill
+  const pts = valid.map(toCanvas);
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.closePath();
+  ctx.fillStyle = '#f0511e14';
+  ctx.fill();
+
+  // Vẽ đường viền
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.closePath();
+  ctx.strokeStyle = '#f0511e';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Vẽ điểm và nhãn
+  pts.forEach((p, i) => {
+    // Điểm
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#f0511e';
+    ctx.fill();
+
+    // Nhãn tên điểm
+    const label = valid[i].name || String(i + 1);
+    ctx.font = '11px monospace';
+    ctx.fillStyle = '#7d8590';
+    ctx.fillText(label, p.x + 6, p.y - 5);
+  });
+
+  // Tính diện tích (công thức Shoelace)
+  let area = 0;
+  for (let i = 0; i < valid.length; i++) {
+    const j = (i + 1) % valid.length;
+    area += valid[i].x * valid[j].y;
+    area -= valid[j].x * valid[i].y;
+  }
+  area = Math.abs(area) / 2;
+
+  info.textContent = `${valid.length} điểm  |  Diện tích ≈ ${area.toFixed(1)} m²`;
+}
+
+function exportSVG() {
+  const valid = coords.filter(p => !isNaN(p.x) && !isNaN(p.y));
+  if (valid.length < 2) { showToast('Chưa có tọa độ để xuất!', true); return; }
+
+  const PAD = 40;
+  const W = 500, H = 500;
+  const xs = valid.map(p => p.x), ys = valid.map(p => p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const rangeX = maxX - minX || 1, rangeY = maxY - minY || 1;
+  const scale = Math.min((W - PAD*2) / rangeX, (H - PAD*2) / rangeY);
+  const offX = PAD + ((W - PAD*2) - rangeX * scale) / 2;
+  const offY = PAD + ((H - PAD*2) - rangeY * scale) / 2;
+  const toSVG = p => ({
+    x: (offX + (p.x - minX) * scale).toFixed(2),
+    y: (H - (offY + (p.y - minY) * scale)).toFixed(2)
+  });
+
+  const pts = valid.map(toSVG);
+  const polyPoints = pts.map(p => `${p.x},${p.y}`).join(' ');
+  const labels = pts.map((p, i) => `<text x="${parseFloat(p.x)+6}" y="${parseFloat(p.y)-4}" font-size="11" fill="#7d8590" font-family="monospace">${valid[i].name || i+1}</text>`).join(' ');
+  const dots = pts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="3.5" fill=\"#f0511e\"/>`).join(' ');
+
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+  <rect width="${W}" height="${H}" fill="#0d1117"/>
+  <polygon points="${polyPoints}" fill="#f0511e14" stroke="#f0511e" stroke-width="1.5"/>
+  ${dots}
+  ${labels}
+</svg>`;
+
+  const blob = new Blob([svg], {type: 'image/svg+xml'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'thua_dat.svg';
+  a.click();
+  showToast('Đã xuất file SVG!');
 }
 </script>
 </body>
