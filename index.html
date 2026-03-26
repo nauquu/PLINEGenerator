@@ -54,9 +54,17 @@
 
   .container {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
     gap: 0;
     height: calc(100vh - 65px);
+  }
+
+  .cell {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
   }
 
   .panel {
@@ -267,6 +275,8 @@
   .close-pline-btn.active { border-color: #e3b341; color: #e3b341; }
 
   #plineOutput {
+    flex: 1;
+    min-height: 0;
     background: #0d1117;
     padding: 14px 16px;
     font-family: 'Courier New', monospace;
@@ -374,13 +384,13 @@
 </div>
 
 <div class="container">
-  <!-- LEFT: Input -->
-  <div class="panel">
+
+  <!-- GÓC TRÊN TRÁI: Upload ảnh -->
+  <div class="cell" style="border-right:1px solid #30363d;border-bottom:1px solid #30363d;">
     <div class="panel-header">
       <div class="dot dot-orange"></div>
       Input — Ảnh bảng tọa độ
     </div>
-
     <div id="uploadSection" style="flex:1;display:flex;flex-direction:column;padding:16px;">
       <label class="upload-zone" id="dropZone">
         <input type="file" id="fileInput" accept="image/*">
@@ -402,7 +412,6 @@
         </div>
       </label>
     </div>
-
     <div id="previewSection" style="display:none;flex:1;flex-direction:column;" class="preview-container">
       <div style="position:relative;">
         <img id="imagePreview" alt="Preview">
@@ -411,7 +420,6 @@
           <div class="loading-text" id="loadingText">Đang phân tích ảnh...</div>
         </div>
       </div>
-
       <div style="display:flex;gap:8px;align-items:center;">
         <button class="analyze-btn" id="analyzeBtn" onclick="analyzeImage()">
           <div class="spinner" id="btnSpinner"></div>
@@ -424,18 +432,16 @@
           ↺ Đổi ảnh
         </button>
       </div>
-
       <div class="hint">💡 AI sẽ nhận diện và trích xuất tọa độ X, Y từ bảng trong ảnh</div>
     </div>
   </div>
 
-  <!-- RIGHT: Table + Output -->
-  <div class="right-panel">
+  <!-- GÓC TRÊN PHẢI: Bảng tọa độ -->
+  <div class="cell" style="border-bottom:1px solid #30363d;">
     <div class="panel-header">
       <div class="dot dot-green"></div>
       Bảng tọa độ — Chỉnh sửa trực tiếp
     </div>
-
     <div class="coord-table-wrap">
       <div class="empty-state" id="emptyState">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#30363d" stroke-width="1.5">
@@ -460,31 +466,16 @@
         <button class="add-row-btn" onclick="addRow()">+ Thêm điểm mới</button>
       </div>
     </div>
-
-    <div class="output-panel">
-      <div class="output-header">
-        <div class="dot dot-blue"></div>
-        <span>Lệnh AutoCAD PLINE</span>
-        <button class="copy-btn" id="copyBtn" onclick="copyToClipboard()">⎘ Sao chép</button>
-      </div>
-      <div id="plineOutput"><div class="empty-state">Lệnh sẽ hiển thị sau khi có tọa độ...</div></div>
-    </div>
-
-    <div class="status-bar">
-      <div class="status-dot"></div>
-      <span id="statusText">Sẵn sàng — Ctrl+V để dán ảnh</span>
-      <span style="margin-left:auto;color:#30363d;">v1.1</span>
-    </div>
   </div>
 
-  <!-- DRAW PANEL -->
-  <div style="display:flex;flex-direction:column;overflow:hidden;border-left:1px solid #30363d;">
+  <!-- GÓC DƯỚI TRÁI: Vẽ hình thửa đất -->
+  <div class="cell" style="border-right:1px solid #30363d;">
     <div class="panel-header">
-      <div class="dot" style="background:#e3b341;"></div>
+      <div class="dot dot-yellow"></div>
       Xem trước thửa đất
-      <button onclick="exportSVG()" style="margin-left:auto;background:none;border:1px solid #30363d;color:#7d8590;padding:3px 10px;border-radius:4px;font-size:11px;cursor:pointer;font-family:'Segoe UI',sans-serif;" onmouseover="this.style.borderColor='#e3b341';this.style.color='#e3b341'" onmouseout="this.style.borderColor='#30363d';this.style.color='#7d8590'">↓ SVG</button>
+      <button onclick="exportSVG()" style="margin-left:auto;background:none;border:1px solid #30363d;color:#7d8590;padding:3px 10px;border-radius:4px;font-size:11px;cursor:pointer;font-family:'Segoe UI',sans-serif;transition:all 0.2s;" onmouseover="this.style.borderColor='#e3b341';this.style.color='#e3b341'" onmouseout="this.style.borderColor='#30363d';this.style.color='#7d8590'">↓ SVG</button>
     </div>
-    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:16px;overflow:hidden;background:#0d1117;">
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:12px;overflow:hidden;background:#0d1117;">
       <div id="drawEmpty" style="display:flex;flex-direction:column;align-items:center;gap:10px;color:#7d8590;font-family:'Segoe UI',sans-serif;font-size:13px;">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#30363d" stroke-width="1">
           <polygon points="3,21 8,5 13,14 17,9 21,21"/>
@@ -493,10 +484,26 @@
       </div>
       <canvas id="landCanvas" style="display:none;max-width:100%;max-height:100%;"></canvas>
     </div>
-    <div style="padding:8px 16px;background:#161b22;border-top:1px solid #30363d;font-size:11px;color:#7d8590;font-family:'Segoe UI',sans-serif;">
+    <div style="padding:7px 16px;background:#161b22;border-top:1px solid #30363d;font-size:11px;color:#7d8590;font-family:'Segoe UI',sans-serif;">
       <span id="drawInfo">—</span>
     </div>
   </div>
+
+  <!-- GÓC DƯỚI PHẢI: Lệnh PLINE + Status -->
+  <div class="cell">
+    <div class="panel-header">
+      <div class="dot dot-blue"></div>
+      <span>Lệnh AutoCAD PLINE</span>
+      <button class="copy-btn" id="copyBtn" onclick="copyToClipboard()" style="margin-left:auto;">⎘ Sao chép</button>
+    </div>
+    <div id="plineOutput" style="flex:1;"><div class="empty-state">Lệnh sẽ hiển thị sau khi có tọa độ...</div></div>
+    <div class="status-bar">
+      <div class="status-dot"></div>
+      <span id="statusText">Sẵn sàng — Ctrl+V để dán ảnh</span>
+      <span style="margin-left:auto;color:#30363d;">v1.2</span>
+    </div>
+  </div>
+
 </div>
 
 <script>
