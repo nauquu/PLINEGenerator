@@ -53,11 +53,16 @@
   }
 
   .container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
-    gap: 0;
+    display: flex;
     height: calc(100vh - 65px);
+  }
+
+  .col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
   }
 
   .cell {
@@ -238,7 +243,7 @@
     border-top: 1px solid #30363d;
     padding: 0;
     display: flex; flex-direction: column;
-    max-height: 280px;
+    max-height: 120px;
   }
 
   .output-header {
@@ -385,123 +390,133 @@
 
 <div class="container">
 
-  <!-- GÓC TRÊN TRÁI: Upload ảnh -->
-  <div class="cell" style="border-right:1px solid #30363d;border-bottom:1px solid #30363d;">
-    <div class="panel-header">
-      <div class="dot dot-orange"></div>
-      Input — Ảnh bảng tọa độ
+  <!-- CỘT TRÁI -->
+  <div class="col" style="border-right:1px solid #30363d;">
+
+    <!-- TRÊN TRÁI: Upload ảnh -->
+    <div class="cell" style="flex:1;border-bottom:1px solid #30363d;">
+      <div class="panel-header">
+        <div class="dot dot-orange"></div>
+        Input — Ảnh bảng tọa độ
+      </div>
+      <div id="uploadSection" style="flex:1;display:flex;flex-direction:column;padding:16px;">
+        <label class="upload-zone" id="dropZone">
+          <input type="file" id="fileInput" accept="image/*">
+          <div class="upload-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+              <path d="M4 16l4.586-4.586A2 2 0 0116 11.414V20M14 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V10L14 4z" stroke-linecap="round"/>
+              <path d="M14 4v6h6" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <p><strong>Kéo thả ảnh vào đây</strong><br>hoặc click để chọn file</p>
+          <div style="margin-top:16px;padding-top:16px;border-top:1px dashed #30363d;width:100%;text-align:center;">
+            <p style="font-size:12px;color:#7d8590;line-height:1.8;">
+              Hoặc chụp màn hình rồi nhấn<br>
+              <span style="display:inline-flex;align-items:center;gap:4px;margin-top:4px;">
+                <kbd style="background:#21262d;border:1px solid #30363d;border-radius:4px;padding:2px 7px;font-size:11px;color:#c9d1d9;font-family:monospace;">Ctrl+V</kbd>
+                <span style="color:#484f58;font-size:11px;">để dán ảnh trực tiếp</span>
+              </span>
+            </p>
+          </div>
+        </label>
+      </div>
+      <div id="previewSection" style="display:none;flex:1;flex-direction:column;" class="preview-container">
+        <div style="position:relative;">
+          <img id="imagePreview" alt="Preview">
+          <div class="loading-overlay" id="loadingOverlay">
+            <div class="big-spinner"></div>
+            <div class="loading-text" id="loadingText">Đang phân tích ảnh...</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="analyze-btn" id="analyzeBtn" onclick="analyzeImage()">
+            <div class="spinner" id="btnSpinner"></div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Phân tích ảnh (AI)
+          </button>
+          <button onclick="resetUpload()" style="background:none;border:1px solid #30363d;color:#7d8590;padding:10px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-family:'Segoe UI',sans-serif;transition:all 0.2s;" onmouseover="this.style.borderColor='#7d8590'" onmouseout="this.style.borderColor='#30363d'">
+            ↺ Đổi ảnh
+          </button>
+        </div>
+        <div class="hint">💡 AI sẽ nhận diện và trích xuất tọa độ X, Y từ bảng trong ảnh</div>
+      </div>
     </div>
-    <div id="uploadSection" style="flex:1;display:flex;flex-direction:column;padding:16px;">
-      <label class="upload-zone" id="dropZone">
-        <input type="file" id="fileInput" accept="image/*">
-        <div class="upload-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5">
-            <path d="M4 16l4.586-4.586A2 2 0 0116 11.414V20M14 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V10L14 4z" stroke-linecap="round"/>
-            <path d="M14 4v6h6" stroke-linecap="round"/>
+
+    <!-- DƯỚI TRÁI: Lệnh PLINE (nhỏ cố định) -->
+    <div class="cell" style="flex-shrink:0;">
+      <div class="panel-header">
+        <div class="dot dot-blue"></div>
+        <span>Lệnh AutoCAD PLINE</span>
+        <button class="copy-btn" id="copyBtn" onclick="copyToClipboard()" style="margin-left:auto;">⎘ Sao chép</button>
+      </div>
+      <div id="plineOutput"><div class="empty-state" style="height:56px;">Lệnh sẽ hiển thị sau khi có tọa độ...</div></div>
+      <div class="status-bar">
+        <div class="status-dot"></div>
+        <span id="statusText">Sẵn sàng — Ctrl+V để dán ảnh</span>
+        <span style="margin-left:auto;color:#30363d;">v1.2</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CỘT PHẢI -->
+  <div class="col">
+
+    <!-- TRÊN PHẢI: Bảng tọa độ -->
+    <div class="cell" style="flex:1;border-bottom:1px solid #30363d;">
+      <div class="panel-header">
+        <div class="dot dot-green"></div>
+        Bảng tọa độ — Chỉnh sửa trực tiếp
+      </div>
+      <div class="coord-table-wrap">
+        <div class="empty-state" id="emptyState">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#30363d" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M3 9h18M9 21V9"/>
           </svg>
+          Tải ảnh bảng tọa độ lên để bắt đầu
         </div>
-        <p><strong>Kéo thả ảnh vào đây</strong><br>hoặc click để chọn file</p>
-        <div style="margin-top:16px;padding-top:16px;border-top:1px dashed #30363d;width:100%;text-align:center;">
-          <p style="font-size:12px;color:#7d8590;line-height:1.8;">
-            Hoặc chụp màn hình rồi nhấn<br>
-            <span style="display:inline-flex;align-items:center;gap:4px;margin-top:4px;">
-              <kbd style="background:#21262d;border:1px solid #30363d;border-radius:4px;padding:2px 7px;font-size:11px;color:#c9d1d9;font-family:monospace;">Ctrl+V</kbd>
-              <span style="color:#484f58;font-size:11px;">để dán ảnh trực tiếp</span>
-            </span>
-          </p>
-        </div>
-      </label>
-    </div>
-    <div id="previewSection" style="display:none;flex:1;flex-direction:column;" class="preview-container">
-      <div style="position:relative;">
-        <img id="imagePreview" alt="Preview">
-        <div class="loading-overlay" id="loadingOverlay">
-          <div class="big-spinner"></div>
-          <div class="loading-text" id="loadingText">Đang phân tích ảnh...</div>
+        <div id="tableContainer" style="display:none;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:40px;">STT</th>
+                <th>Tên điểm</th>
+                <th>X (m)</th>
+                <th>Y (m)</th>
+                <th style="width:36px;"></th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+          <button class="add-row-btn" onclick="addRow()">+ Thêm điểm mới</button>
         </div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <button class="analyze-btn" id="analyzeBtn" onclick="analyzeImage()">
-          <div class="spinner" id="btnSpinner"></div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke-linecap="round" stroke-linejoin="round"/>
+    </div>
+
+    <!-- DƯỚI PHẢI: Xem trước thửa đất -->
+    <div class="cell" style="flex:1;">
+      <div class="panel-header">
+        <div class="dot dot-yellow"></div>
+        Xem trước thửa đất
+        <button onclick="exportSVG()" style="margin-left:auto;background:none;border:1px solid #30363d;color:#7d8590;padding:3px 10px;border-radius:4px;font-size:11px;cursor:pointer;font-family:'Segoe UI',sans-serif;transition:all 0.2s;" onmouseover="this.style.borderColor='#e3b341';this.style.color='#e3b341'" onmouseout="this.style.borderColor='#30363d';this.style.color='#7d8590'">↓ SVG</button>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:12px;overflow:hidden;background:#0d1117;">
+        <div id="drawEmpty" style="display:flex;flex-direction:column;align-items:center;gap:10px;color:#7d8590;font-family:'Segoe UI',sans-serif;font-size:13px;">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#30363d" stroke-width="1">
+            <polygon points="3,21 8,5 13,14 17,9 21,21"/>
           </svg>
-          Phân tích ảnh (AI)
-        </button>
-        <button onclick="resetUpload()" style="background:none;border:1px solid #30363d;color:#7d8590;padding:10px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-family:'Segoe UI',sans-serif;transition:all 0.2s;" onmouseover="this.style.borderColor='#7d8590'" onmouseout="this.style.borderColor='#30363d'">
-          ↺ Đổi ảnh
-        </button>
+          Hình thửa đất sẽ hiện ở đây
+        </div>
+        <canvas id="landCanvas" style="display:none;max-width:100%;max-height:100%;"></canvas>
       </div>
-      <div class="hint">💡 AI sẽ nhận diện và trích xuất tọa độ X, Y từ bảng trong ảnh</div>
+      <div style="padding:7px 16px;background:#161b22;border-top:1px solid #30363d;font-size:11px;color:#7d8590;font-family:'Segoe UI',sans-serif;">
+        <span id="drawInfo">—</span>
+      </div>
     </div>
-  </div>
 
-  <!-- GÓC TRÊN PHẢI: Bảng tọa độ -->
-  <div class="cell" style="border-bottom:1px solid #30363d;">
-    <div class="panel-header">
-      <div class="dot dot-green"></div>
-      Bảng tọa độ — Chỉnh sửa trực tiếp
-    </div>
-    <div class="coord-table-wrap">
-      <div class="empty-state" id="emptyState">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#30363d" stroke-width="1.5">
-          <rect x="3" y="3" width="18" height="18" rx="2"/>
-          <path d="M3 9h18M9 21V9"/>
-        </svg>
-        Tải ảnh bảng tọa độ lên để bắt đầu
-      </div>
-      <div id="tableContainer" style="display:none;">
-        <table>
-          <thead>
-            <tr>
-              <th style="width:40px;">STT</th>
-              <th>Tên điểm</th>
-              <th>X (m)</th>
-              <th>Y (m)</th>
-              <th style="width:36px;"></th>
-            </tr>
-          </thead>
-          <tbody id="tableBody"></tbody>
-        </table>
-        <button class="add-row-btn" onclick="addRow()">+ Thêm điểm mới</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- GÓC DƯỚI TRÁI: Vẽ hình thửa đất -->
-  <div class="cell" style="border-right:1px solid #30363d;">
-    <div class="panel-header">
-      <div class="dot dot-yellow"></div>
-      Xem trước thửa đất
-      <button onclick="exportSVG()" style="margin-left:auto;background:none;border:1px solid #30363d;color:#7d8590;padding:3px 10px;border-radius:4px;font-size:11px;cursor:pointer;font-family:'Segoe UI',sans-serif;transition:all 0.2s;" onmouseover="this.style.borderColor='#e3b341';this.style.color='#e3b341'" onmouseout="this.style.borderColor='#30363d';this.style.color='#7d8590'">↓ SVG</button>
-    </div>
-    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:12px;overflow:hidden;background:#0d1117;">
-      <div id="drawEmpty" style="display:flex;flex-direction:column;align-items:center;gap:10px;color:#7d8590;font-family:'Segoe UI',sans-serif;font-size:13px;">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#30363d" stroke-width="1">
-          <polygon points="3,21 8,5 13,14 17,9 21,21"/>
-        </svg>
-        Hình thửa đất sẽ hiện ở đây
-      </div>
-      <canvas id="landCanvas" style="display:none;max-width:100%;max-height:100%;"></canvas>
-    </div>
-    <div style="padding:7px 16px;background:#161b22;border-top:1px solid #30363d;font-size:11px;color:#7d8590;font-family:'Segoe UI',sans-serif;">
-      <span id="drawInfo">—</span>
-    </div>
-  </div>
-
-  <!-- GÓC DƯỚI PHẢI: Lệnh PLINE + Status -->
-  <div class="cell">
-    <div class="panel-header">
-      <div class="dot dot-blue"></div>
-      <span>Lệnh AutoCAD PLINE</span>
-      <button class="copy-btn" id="copyBtn" onclick="copyToClipboard()" style="margin-left:auto;">⎘ Sao chép</button>
-    </div>
-    <div id="plineOutput" style="flex:1;"><div class="empty-state">Lệnh sẽ hiển thị sau khi có tọa độ...</div></div>
-    <div class="status-bar">
-      <div class="status-dot"></div>
-      <span id="statusText">Sẵn sàng — Ctrl+V để dán ảnh</span>
-      <span style="margin-left:auto;color:#30363d;">v1.2</span>
-    </div>
   </div>
 
 </div>
