@@ -629,7 +629,13 @@ async function analyzeImage() {
   let d = 0;
   for (const [m, ms] of msgs) { setTimeout(() => { loadingText.textContent = m; }, d); d += ms; }
 
-  try {
+  const maxRetries = 3;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+   try {
+    if (attempt > 1) {
+      loadingText.textContent = `Thử lại lần ${attempt}/${maxRetries}...`;
+      await new Promise(r => setTimeout(r, 2000 * attempt));
+    }
     const res = await fetch(WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -671,13 +677,20 @@ async function analyzeImage() {
       showToast('Trích xuất thành công ' + coords.length + ' điểm!');
       document.getElementById('statusText').textContent = 'Đã trích xuất ' + coords.length + ' điểm tọa độ';
     }
-  } catch (err) {
+   } catch (err) {
+    if (attempt < maxRetries && (err.message.includes('high demand') || err.message.includes('overloaded') || err.message.includes('503') || err.message.includes('429'))) {
+      continue;
+    }
     showToast('Lỗi: ' + err.message, true);
     document.getElementById('statusText').textContent = 'Lỗi phân tích';
-  } finally {
+    break;
+   } finally {
+    if (attempt === maxRetries) {
     btn.disabled = false;
     spinner.style.display = 'none';
     overlay.classList.remove('show');
+    }
+   }
   }
 }
 
